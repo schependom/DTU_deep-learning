@@ -1,0 +1,171 @@
+\documentclass[dtu]{dtuarticle}
+\usepackage{parskip} % use enters instead of indents
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{graphicx}
+
+\newcommand{\todo}[1]{\color{red}[TODO: #1]\color{black}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\y}{\mathbf{y}}
+\newcommand{\w}{\mathbf{w}}
+\newcommand{\h}{\mathbf{h}}
+\newcommand{\z}{\mathbf{z}}
+
+\title{02456 Deep Learning}
+\subtitle{Cheat Sheet}
+\author{Vincent, Malthe, Sara \& Jacob}
+\course{02456 Deep Learning}
+\address{
+	DTU Compute \\
+	Fall 2025
+}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Basics \& Feed Forward Networks}
+
+\subsection{Multilayer Perceptron}
+
+\begin{minipage}{0.45\textwidth}
+    \renewcommand{\arraystretch}{1.5}
+    \begin{tabular}{l | l | l}
+        Name                    & Symbol               & Dimension               \\
+        \hline
+        Input Vector            & $\bm{x}$             & $N_{in} \times 1$       \\
+        Weights                 & $\bm{W}$             & $N_{out} \times N_{in}$ \\
+        Bias                    & $\bm{b}$             & $N_{out} \times 1$      \\
+        Pre-activation          & $\bm{z}$             & $N_{out} \times 1$      \\
+        Activation              & $\sigma(\cdot)$      & $N_{out} \times 1$      \\
+        Output                  & $\bm{h} = f(\bm{x})$ & $N_{out} \times 1$      \\
+        Number of neurons       & $D$                  &                         \\
+        Number of hidden layers & $K$                  &                         \\
+    \end{tabular}
+\end{minipage}
+\hfill
+\begin{minipage}{0.45\textwidth}
+    \begin{center}
+        Maybe an image here?
+    \end{center}
+\end{minipage}
+
+\begin{align*}
+    W =
+    \begin{bmatrix}
+        w_{11}       & w_{12}       & \cdots & w_{1N_{in}}       \\
+        w_{21}       & w_{22}       & \cdots & w_{2N_{in}}       \\
+        \vdots       & \vdots       & \ddots & \vdots            \\
+        w_{N_{out}1} & w_{N_{out}2} & \cdots & w_{N_{out}N_{in}}
+    \end{bmatrix} =
+    \begin{bmatrix}
+        w_{1 \leftarrow 1}       & w_{1 \leftarrow 2}       & \cdots & w_{1 \leftarrow N_{in}}       \\
+        w_{2 \leftarrow 1}       & w_{2 \leftarrow 2}       & \cdots & w_{2 \leftarrow N_{in}}       \\
+        \vdots                   & \vdots                   & \ddots & \vdots                        \\
+        w_{N_{out} \leftarrow 1} & w_{N_{out} \leftarrow 2} & \cdots & w_{N_{out} \leftarrow N_{in}}
+    \end{bmatrix}
+\end{align*}
+
+Here, $w_{j \leftarrow i}$ denotes the weight from neuron $i^{(l-1)}$ to neuron $j^{(l)}$.
+
+$$\bm{h}^{(l)} = \sigma\underbrace{\left(\bm{W}^{(l)} \bm{h}^{(l-1)} + \bm{b}^{(l)}\right)}_{\bm{z}^{(l)} = \text{pre-activation}}, \quad \bm{y} = f_\bm{\theta}(\bm{x})$$
+
+\subsection{Parameter Count}
+$$3D+ 1 + (K-1)D(D+1)$$
+
+\subsection{Activation Functions}
+
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{l | l}
+    Name                   & Formula                                                                                         \\
+    \hline
+    Sigmoid                & $\sigma(\mathbf{h}) = \frac{1}{1 + e^{-\mathbf{h}}}$                                            \\
+    Tanh                   & $\tanh(\mathbf{h}) = \frac{e^{\mathbf{h}} - e^{-\mathbf{h}}}{e^{\mathbf{h}} + e^{-\mathbf{h}}}$ \\
+    ReLU                   & $\text{ReLU}(\mathbf{h}) = \max(0, \mathbf{h})$                                                 \\
+    Softmax (Output Layer) & $\pi_d = \frac{e^{h_d}}{\sum_j e^{h_j}}$                                                        \\
+\end{tabular}
+
+\subsection{Backpropagation}
+
+Chain Rule:
+$$ ... $$
+
+\newpage
+
+\section{Training \& Optimization}
+
+\subsection{Loss Functions $L(\phi)$}
+Given dataset $D = \{(x_i, y_i)\}_{i=1}^N$:
+
+\begin{tabular}{l | l | l}
+    Name & Formula & Regression/Classification & Notes \\                                                                            \\
+    \hline
+    ...  & ...     & ...                       & ...   \\
+\end{tabular}
+
+\subsection{Gradient Descent Updates}
+
+$$ \theta_{t+1} = \theta_t - \eta \nabla_\theta L(\theta_t) $$
+
+\subsection{Optimizers}
+
+\textbf{SGD + Momentum:}
+\begin{align*}
+    m_{t+1}      & = \beta m_t + (1-\beta) \nabla L(\theta_t) \\
+    \theta_{t+1} & = \theta_t - \eta m_{t+1}
+\end{align*}
+
+\textbf{Adam:}
+\begin{align*}
+    m_t          & = \beta_1 m_{t-1} + (1-\beta_1) g_t                             \\
+    v_t          & = \beta_2 v_{t-1} + (1-\beta_2) g_t^2                           \\
+    \hat{m}_t    & = m_t / (1-\beta_1^t)                                           \\
+    \hat{v}_t    & = v_t / (1-\beta_2^t)                                           \\
+    \theta_{t+1} & = \theta_t - \eta \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}
+\end{align*}
+
+\newpage
+
+\section{Regularization \& Initialization}
+
+\subsection{Bias-Variance Tradeoff}
+
+$ E_{gen} = \text{Bias}^2 + \text{Variance} + \text{Noise} $.
+
+\subsection{Regularization}
+\begin{itemize}
+    \item \textbf{L2 (Weight Decay):} $L' = L + \frac{\lambda}{2}||\w||^2$. Gradient update adds $+\lambda \w$.
+    \item \textbf{L1 (Lasso):} $L' = L + \frac{\lambda}{2}||\w||_1$. Induces sparsity.
+    \item \textbf{Dropout:} Randomly zero activations with prob $p$. Scale activations by $1/(1-p)$ during training to maintain magnitude.
+    \item \textbf{Batch Normalization:} Normalize inputs per mini-batch ($\mu_B, \sigma_B$). Learnable parameters $\gamma, \beta$. At test time, use running stats.
+    \item \textbf{Data Augmentation:} Increase dataset size via transformations (flips, crops, noise).
+    \item ...
+\end{itemize}
+
+\subsection{Weight Initialization}
+
+Variance matching to maintain signal magnitude.
+
+\textbf{He (Kaiming) Init:} For ReLU. $$\sigma^2 = \frac{2}{D_{in}}$$.
+\textbf{Glorot (Xavier) Init:} For Sigmoid/Tanh. $$\sigma^2 = \frac{2}{D_{in} + D_{out}}$$.
+
+\newpage
+
+\section{Convolutional Neural Networks}
+
+...
+
+\end{document}

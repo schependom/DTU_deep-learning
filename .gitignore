@@ -3,3 +3,10 @@
 .DS_Store
 Week8 Mini Project/images
 **/__pycache__/
+summary.toc
+summary.synctex.gz
+summary.out
+summary.log
+summary.fls
+summary.fdb_latexmk
+summary.aux
