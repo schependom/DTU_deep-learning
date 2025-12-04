@@ -232,6 +232,32 @@ where $\eta$ is the learning rate, and $\epsilon$ is a small constant to prevent
 
 Used to calculate gradients $\nabla_{\bm{\phi}} L(\bm{\phi})$.
 
+First, we define the forward pass for a single layer $l$. Let $\bm{h}^{(l-1)}$ be the input to layer $l$ (where $\bm{h}^{(0)} = \bm{x}$).\begin{align*}
+    \bm{z}^{(l)} & = \bm{W}^{(l)} \bm{h}^{(l-1)} + \bm{b}^{(l)} \\
+    \bm{h}^{(l)} & = \sigma(\bm{z}^{(l)})                       \\
+\end{align*}
+The objective is to compute the gradient of the loss $L(\phi)$ with respect to the parameters $\bm{W}^{(l)}$ and $\bm{b}^{(l)}$. We apply the chain rule starting from the pre-activation $\bm{z}^{(l)}$.\begin{align*}
+    \bm{\delta}^{(l)} & \equiv \frac{\partial L}{\partial \bm{z}^{(l)}} \\
+\end{align*}
+Using the chain rule, we express the gradients for the weights and biases at layer $l$ in terms of $\bm{\delta}^{(l)}$.\begin{align*}
+    \frac{\partial L}{\partial \bm{W}^{(l)}} & = \frac{\partial L}{\partial \bm{z}^{(l)}} \cdot \frac{\partial \bm{z}^{(l)}}{\partial \bm{W}^{(l)}} \\
+                                             & = \bm{\delta}^{(l)} (\bm{h}^{(l-1)})^T                                                               \\
+    \\
+    \frac{\partial L}{\partial \bm{b}^{(l)}} & = \frac{\partial L}{\partial \bm{z}^{(l)}} \cdot \frac{\partial \bm{z}^{(l)}}{\partial \bm{b}^{(l)}} \\
+                                             & = \bm{\delta}^{(l)}                                                                                  \\
+\end{align*}
+To compute $\bm{\delta}^{(l)}$, we propagate the error backwards from the next layer $(l+1)$. We use the chain rule to expand $\frac{\partial L}{\partial \bm{z}^{(l)}}$:\begin{align*}
+    \bm{\delta}^{(l)} & = \frac{\partial L}{\partial \bm{z}^{(l+1)}} \cdot \frac{\partial \bm{z}^{(l+1)}}{\partial \bm{h}^{(l)}} \cdot \frac{\partial \bm{h}^{(l)}}{\partial \bm{z}^{(l)}} \\
+\end{align*}
+Substituting the known terms:\begin{align*}
+    \frac{\partial L}{\partial \bm{z}^{(l+1)}}            & = \bm{\delta}^{(l+1)}   \\
+    \frac{\partial \bm{z}^{(l+1)}}{\partial \bm{h}^{(l)}} & = \bm{W}^{(l+1)}        \\
+    \frac{\partial \bm{h}^{(l)}}{\partial \bm{z}^{(l)}}   & = \sigma'(\bm{z}^{(l)}) \\
+\end{align*}
+This gives us the recursive formula for backpropagation:\begin{align*}
+    \bm{\delta}^{(l)} & = \left( (\bm{W}^{(l+1)})^T \bm{\delta}^{(l+1)} \right) \odot \sigma'(\bm{z}^{(l)})
+\end{align*}
+
 \newpage
 
 \section{Initialization \& Regularization}
