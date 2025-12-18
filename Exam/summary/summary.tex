@@ -1,0 +1,1040 @@
+\documentclass[dtu]{dtuarticle}
+\usepackage{parskip} % use enters instead of indents
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage[dvipsnames]{xcolor}
+
+\newcommand{\todo}[1]{\color{red}[TODO: #1]\color{black}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\y}{\mathbf{y}}
+\newcommand{\w}{\mathbf{w}}
+\newcommand{\h}{\mathbf{h}}
+\newcommand{\z}{\mathbf{z}}
+\newcommand{\argmin}{\arg\min}
+\newcommand{\argmax}{\arg\max}
+\newcommand{\f}{\mathbf{f}}
+\newcommand{\rood}[1]{\color{red}{#1}\color{black}}
+\newcommand{\red}[1]{\color{red}{#1}\color{black}}
+
+\title{Complete Course Summary}
+\subtitle{Deep Learning}
+\author{Vincent Van Schependom}
+\course{02456 Deep Learning}
+\address{
+	DTU Compute \\
+	Fall 2025
+}
+\date{Fall 2025}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introduction}
+
+This document serves as a comprehensive summary of the formulas and concepts covered in the \textit{02456 Deep Learning} Master's course at the Technical University of Denmark (DTU) \cite{dtu_02456}.
+The content is derived from the course lectures and the book \textit{Understanding Deep Learning} by Simon J.D. Prince \cite{understanding_deep_learning}.
+
+Please note that this summary reflects the curriculum as of Fall 2025; course materials may evolve in future semesters.
+If you identify any errors, please contact the author, Vincent Van Schependom.
+
+\tableofcontents
+\bibliography{references}
+\bibliographystyle{unsrt}
+\newpage
+
+\section{Basics \& Feed Forward Networks}
+
+\subsection{Multilayer Perceptron (MLP)}
+
+A feed-forward neural network (FNN) with multiple layers. The output of layer $l$ is the input to layer $l+1$. Notation follows the slides: superscripts denote layers, subscripts denote components.
+
+\begin{minipage}{0.45\textwidth}
+    \renewcommand{\arraystretch}{1.5}
+    \begin{tabular}{l | l | l}
+        Name                       & Symbol                  & Dimension                  \\
+        \hline
+        Input Vector               & $\bm{x} = \bm{h}^{(0)}$ & $D^{(0)} \times 1$         \\
+        Weights (Layer $l$)        & $\bm{W}^{(l)}$          & $D^{(l)} \times D^{(l-1)}$ \\
+        Bias (Layer $l$)           & $\bm{b}^{(l)}$          & $D^{(l)} \times 1$         \\
+        Pre-activation (Layer $l$) & $\bm{z}^{(l)}$          & $D^{(l)} \times 1$         \\
+        Activation Function        & $\sigma(\cdot)$         &                            \\
+        Hidden State (Layer $l$)   & $\bm{h}^{(l)}$          & $D^{(l)} \times 1$         \\
+        Output                     & $\bm{y} = \bm{h}^{(L)}$ & $D^{(L)} \times 1$         \\
+        Number of Layers           & $L$                     &                            \\
+        Neurons per Layer          & $D$                     &                            \\
+        Distribution params        & $\bm{\theta}$           &                            \\
+        Model params               & $\bm{\phi}$             &                            \\
+    \end{tabular}
+\end{minipage}
+\hfill
+\begin{minipage}{0.45\textwidth}
+    Layer computation:
+    $$\bm{z}^{(l)} = \bm{W}^{(l)} \bm{h}^{(l-1)} + \bm{b}^{(l)}$$
+    $$\bm{h}^{(l)} = \sigma(\bm{z}^{(l)})$$
+
+    Weight matrix:
+    $$
+        \bm{W}^{(l)} =
+        \begin{bmatrix}
+            w_{1\leftarrow1}^{(l)}       & w_{1\leftarrow2}^{(l)}       & \cdots & w_{1\leftarrow D^{(l-1)}}^{(l)}       \\
+            \vdots                       & \vdots                       & \ddots & \vdots                                \\
+            w_{D^{(l)}\leftarrow1}^{(l)} & w_{D^{(l)}\leftarrow2}^{(l)} & \cdots & w_{D^{(l)}\leftarrow D^{(l-1)}}^{(l)}
+        \end{bmatrix}
+    $$
+    Here, $w_{j\leftarrow i}^{(l)}$ is the weight from input neuron $i$ in layer $l-1$ to output neuron $j$ in layer $l$.
+\end{minipage}
+
+\subsection{Full network}
+
+We predict the \textbf{distribution} (parameters $\bm{\theta}$) of the labels $\bm{y}$ given the inputs $\bm{x}$ using multi-output model $\f_{\bm{\phi}}(\bm{x})$:
+$$\boxed{\bm{\theta} = \f_{\bm{\phi}}(\bm{x}) \quad \rightsquigarrow \quad p(\bm{y} | \f_{\bm{\phi}}(\bm{x}))}, \qquad \bm{\phi} = \{\bm{W}^{(l)}, \bm{b}^{(l)}\}_{l=1}^L$$
+For \textit{regression} or \textit{multi-output sigmoid classification} we assume independence between all $D$ output dimensions $\f_{\bm{\phi}}(\bm{x}) = [\f_{\bm{\phi},1}(\bm{x}), \ldots, \f_{\bm{\phi},D}(\bm{x})]$:
+$$p(\bm{y} | \f_{\bm{\phi}}(\bm{x})) \overset{\text{indep.}}{=} \prod_{d=1}^D p(y_d | \f_{\bm{\phi},d}(\bm{x}))$$
+For \textit{multiclass softmax classification} we assume a joint categorical distribution, \textit{not independence}.
+Using these distribution parameters, we calculate the distributions:
+\begin{itemize}
+    \item \textbf{Regression} (heteroscedastic, because we predict the variance): $$p(\bm{y} | f_{\bm{\phi}}(\bm{x})) \overset{\text{indep.}}{=} \prod_{d=1}^D \mathcal{N}(y_d | \mu_d, \sigma_d) = \boxed{\mathcal{N}(\bm{y} | \bm{\mu}, \mathrm{diag}(\bm{\sigma}^2))}$$
+    \item \textbf{Multi-output sigmoid classification} ($\bm{y} \in \{0, 1\}^D$, classes are \textit{independent}): $$p(\bm{y} | f_{\bm{\phi}}(\bm{x})) \overset{\text{indep.}}{=} \prod_{d=1}^D p(y_d | \pi_d) = \boxed{\prod_{d=1}^D \pi_d^{y_d} (1-\pi_d)^{1-y_d}}$$
+    \item \textbf{Multiclass (softmax) classification} ($\bm{y} \in \{0, 1\}^K$ one-hot, classes are \textit{mutually exclusive}): $$p(\bm{y} | f_{\bm{\phi}}(\bm{x})) = p(\bm{y} | \pi_1, \ldots, \pi_K) = \boxed{\prod_{k=1}^K \pi_k^{y_k}}$$
+\end{itemize}
+
+\subsection{Probabilistic Inference}
+
+For learned model parameters $\hat{\bm{\phi}}$, make predictions $\hat{\bm{y}}$ using $p(\bm{y} | f_{\hat{\bm{\phi}}}(\bm{x}))$:
+\begin{itemize}
+    \item Most probable value: $\hat{\bm{y}} = \argmax_{\bm{y}} p(\bm{y} | f_{\hat{\bm{\phi}}}(\bm{x}))$
+    \item Expected value: $\hat{\bm{y}} = \mathbb{E}_{\bm{y} \sim p(\bm{y} | f_{\hat{\bm{\phi}}}(\bm{x}))}[\bm{y}]$
+    \item Sample: $\hat{\bm{y}} \sim p\left(\bm{y} | f_{\hat{\bm{\phi}}}(\bm{x})\right)$
+\end{itemize}
+
+\subsection{Parameter Count}
+
+For a network with input dimension $D^{(0)}$, $K$ hidden layers with $D$ neurons, and output dimension $D^{(L)}$:
+$$\#\text{parameters} = D^{(0)} \cdot D + D + (K-1) \cdot (D \cdot D + D) + D \cdot D^{(L)} + D^{(L)}$$
+Simplified for 1 input and 1 output: $$\#\text{parameters} = 3D+ 1 + (K-1)D(D+ 1)$$
+
+\subsection{Activation Functions}
+
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{l | l | l}
+    Name               & Formula                                                 & Layer Type                               \\
+    \hline \hline
+    Sigmoid            & $\sigma(z) = \frac{1}{1 + e^{-z}}$                      & Hidden or output (binary classification) \\
+    Arc-tangent        & $\sigma(z) = \arctan(z)$                                & Hidden                                   \\
+    Hyperbolic tangent & $\sigma(z) = \tanh(z)$                                  & Hidden                                   \\
+    ReLU               & $\sigma(z) = \max(0, z)$                                & Hidden                                   \\
+    Leaky ReLU         & $\sigma(z) = \max(\alpha z, z)$, $\alpha \ll 1$         & Hidden                                   \\ \hline
+    Linear             & $\sigma(z) = z$                                         & Output                                   \\
+    Softmax (Output)   & $\sigma(z_d) = \pi_d = \dfrac{e^{z_d}}{\sum_d e^{z_d}}$ & Output (multiclass classification)
+\end{tabular}
+
+\subsection{Universal Approximation Theorem}
+
+A two-layer network with linear outputs can uniformly approximate any continuous function on a compact input domain (compact subset of $\R^N$) to arbitrary accuracy provided the network has sufficiently large number of hidden units.\\
+This is because:
+\begin{itemize}
+    \item Pre-activation = piecewise linear
+    \item Number of \textbf{linear regions} for 1 input and $D$ neurons = $D+1$
+    \item (only $D$ of them are independent and $1$ is either zero or the sum of all other regions)
+\end{itemize}
+
+\subsection{Other}
+
+Multiple inputs:
+\begin{itemize}
+    \item Multiple \textit{out}puts: Joints are in the same place for each neuron
+    \item Multiple \textit{in}puts: Linear regions are convex polytopes in the multidimensional input space
+    \item Shallow networks almost always have $D > D_{\text{in}}$ and create between $2^{D_{\text{in}}}$ and $2^D$ linear regions
+    \item Deep networks with 1 input, 1 output and $K$ layers of $D>2$ hidden units can create a function with up to $(D+1)^K$ linear regions
+\end{itemize}
+
+\newpage
+
+\section{Training \& Optimization}
+
+Given dataset $\mathcal{D} = \{(\bm{x}_i, \bm{y}_i)\}_{i=1}^N$, calculate mismatch using loss function:
+$$L(\bm{\phi}) = \frac{1}{N} \sum_{i=1}^N \ell(f_{\bm{\phi}}(\bm{x}_i), \bm{y}_i)$$
+We learn/fit the model by minimizing this loss:
+$$\hat{\bm{\phi}} = {\argmin}_{\bm{\phi}} L(\bm{\phi})$$
+
+\subsection{Loss Functions}
+
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{l | l | l}
+    Name                          & Formula                                                                & Type          \\
+    \hline
+    Mean Squared Error (MSE)      & $\frac{1}{N}\sum_{n=1}^{N}||f_{\bm{\phi}}(\bm{x}_n)-\bm{y}_n||^{2}$    & Regression    \\
+    Binary Cross-Entropy          & $-\frac{1}{N}\sum_{n=1}^{N} [y_n \log \pi_n + (1-y_n)\log(1-\pi_n)]$   & Binary Class. \\
+    Categorical Cross-Entropy     & $-\frac{1}{N}\sum_{n=1}^{N}\sum_{d=1}^D y_{nd}\log \pi_{nd}$           & Multi-Class   \\
+    Negative Log-Likelihood (NLL) & $-\frac{1}{N}\sum_{n=1}^{N}\log p(\bm{y}_n | f_{\bm{\phi}}(\bm{x}_n))$ & General       \\
+\end{tabular}
+
+\subsection{Maximum Likelihood Estimation (MLE)}
+
+Unless working with time series data, we assume that each data point is i.i.d:
+$$p(\bm{y}_1, \ldots, \bm{y}_N | \bm{x}_1, \ldots, \bm{x}_N, \bm{\phi}) = \prod_{i=1}^N p(\bm{y}_i | f_{\bm{\phi}}(\bm{x}_i))$$
+Maximising Likelihood is equivalent to minimising NLL, since $\log$ is monotonically increasing.\\:
+$$\hat{\bm{\phi}} = {\argmax}_{\bm{\phi}} \prod_{i=1}^N p(\bm{y}_i | f_{\bm{\phi}}(\bm{x}_i)) = - {\argmin}_{\bm{\phi}} \sum_{i=1}^N \log p(\bm{y}_i | f_{\bm{\phi}}(\bm{x}_i))$$
+Find parameters that maximise the probability of the data $\{(\bm{x}_i, \bm{y}_i)\}_{i=1}^N$ using loss:
+$$\boxed{L(\bm{\phi}) = - \sum_{i=1}^N \log p(\bm{y}_i | f_{\bm{\phi}}(\bm{x}_i))}$$
+Assuming that dimensions of each $\bm{y}_i$ are independent the parameters:
+$$p(\bm{y}_i | f_{\bm{\phi}}(\bm{x}_i)) = \prod_{d=1}^D p(y_{id} | f_{\bm{\phi}}(\bm{x}_i))$$
+which yields the loss function
+$$\boxed{L(\bm{\phi}) = - \sum_{i=1}^N \sum_{d=1}^D \log p(y_{id} | f_{\bm{\phi}}(\bm{x}_i))}$$
+
+For multiclass classification, we had $p(\bm{y}_i | f_{\bm{\phi}}(\bm{x}_i)) = \Pi_{d=1}^D \pi_{id}^{y_{id}}$, so the \textbf{cross-entropy loss} is
+$$\boxed{L(\bm{\phi}) = - \sum_{i=1}^N \sum_{d=1}^D y_{id} \log \pi_{id}}$$
+with class probabilities $\pi \in [0, 1]$, which sum to 1 ($\sum_d \pi_{id} = 1$): $$\pi = \begin{bmatrix}
+        \pi_1  \\
+        \vdots \\
+        \pi_K
+    \end{bmatrix} = \begin{bmatrix}
+        \mathrm{softmax}(z_1) \\
+        \vdots                \\
+        \mathrm{softmax}(z_K)
+    \end{bmatrix} = \begin{bmatrix}
+        \dfrac{e^{z_1}}{\sum_d e^{z_d}} \\
+        \vdots                          \\
+        \dfrac{e^{z_K}}{\sum_d e^{z_d}}
+    \end{bmatrix} $$.
+
+\subsection{Gradient Descent}
+
+Minimize $L(\bm{\phi})$: initialise $\bm{\phi}^{(0)}$ and update iteratively with \textbf{learning rate} $\eta$:
+$$\bm{\phi}^{(t+1)} = \bm{\phi}^{(t)} - \eta \nabla_{\bm{\phi}} \mathcal{L}(\bm{\phi}^{(t)}), \qquad \nabla_{\bm{\phi}} \mathcal{L}(\bm{\phi}) = \begin{bmatrix}
+        \frac{\partial \mathcal{L}(\bm{\phi})}{\partial \bm{\phi}^{(1)}} \\
+        \vdots                                                           \\
+        \frac{\partial \mathcal{L}(\bm{\phi})}{\partial \bm{\phi}^{(D)}} \\
+    \end{bmatrix} = \begin{bmatrix}
+        \frac{\partial \mathcal{L}(\bm{\phi})}{\partial \bm{W}^{(1)}} \\
+        \frac{\partial \mathcal{L}(\bm{\phi})}{\partial \bm{b}^{(1)}} \\
+        \vdots                                                        \\
+        \frac{\partial \mathcal{L}(\bm{\phi})}{\partial \bm{W}^{(L)}} \\
+        \frac{\partial \mathcal{L}(\bm{\phi})}{\partial \bm{b}^{(L)}}
+    \end{bmatrix}$$
+
+\subsubsection{Stochastic Gradient Descent (SGD)}
+Draw minibatches $\mathcal{B}_t \subseteq \{1, \ldots, N\}$ \textbf{without replacement}:
+$$\bm{\phi}^{(t+1)} = \bm{\phi}^{(t)} - \sum_{i \in \mathcal{B}_t} \frac{\partial \ell_i(\bm{\phi}^{(t)})}{\partial \bm{\phi}}$$
+where $\ell_i(\bm{\phi})$ is the loss of the $i$-th sample $(\bm{x}_i, \bm{y}_i)$ and $L(\bm{\phi}) = \sum_{i=1}^N \ell_i(\bm{\phi})$.\\
+A full pass through the dataset is called an \textbf{epoch}.
+
+\subsubsection{Adam (Adaptive Moment Estimation)}
+Compute first and second moment of gradients:\begin{align*}
+    \bm{m}^{(t+1)} & = \beta \bm{m}^{(t)} + (1-\beta) \nabla_{\bm{\phi}} \ell_i(\bm{\phi}^{(t)})     \\
+    \bm{v}^{(t+1)} & = \gamma \bm{v}^{(t)} + (1-\gamma) \nabla_{\bm{\phi}} \ell_i(\bm{\phi}^{(t)})^2
+\end{align*}
+Compensate for initial values close to zero: \begin{align*}
+    \tilde{\bm{m}}^{(t+1)} = \frac{\bm{m}^{(t+1)}}{1-\beta^{t+1}}, \qquad \tilde{\bm{v}}^{(t+1)} = \frac{\bm{v}^{(t+1)}}{1-\gamma^{t+1}}
+\end{align*}
+Update parameters after normalization by the second moment.\\
+This way, we take the same step size in each direction (stable). \begin{align*}
+    \bm{\phi}^{(t+1)} = \bm{\phi}^{(t)} - \eta \frac{\tilde{\bm{m}}^{(t+1)}}{\sqrt{\tilde{\bm{v}}^{(t+1)}} + \epsilon}
+\end{align*}
+where $\eta$ is the learning rate, and $\epsilon$ is a small constant to prevent division by zero.\\
+
+\subsection{Backpropagation}
+
+The Backpropagation algorithm computes the gradients $\nabla_{\bm{\phi}} L(\bm{\phi})$ required for optimization. We define the process for a Multi-Layer Perceptron (MLP) using vector calculus notation.
+
+\subsubsection{Forward Pass}
+For a layer $l$ containing $n_l$ units, let $\bm{h}^{(l-1)} \in \mathbb{R}^{n_{l-1}}$ be the input. The forward propagation equations are:
+\begin{align*}
+    \bm{z}^{(l)} & = \bm{W}^{(l)} \bm{h}^{(l-1)} + \bm{b}^{(l)} \\
+    \bm{h}^{(l)} & = \sigma(\bm{z}^{(l)})
+\end{align*}
+where $\bm{W}^{(l)} \in \mathbb{R}^{n_l \times n_{l-1}}$ is the weight matrix and $\bm{b}^{(l)} \in \mathbb{R}^{n_l}$ is the bias vector. The function $\sigma(\cdot)$ represents an element-wise non-linear activation.
+
+\subsubsection{Backward Pass}
+We define the \textit{error term} (or local gradient) $\bm{\delta}^{(l)}$ as the gradient of the loss function $L$ with respect to the pre-activation $\bm{z}^{(l)}$:
+\begin{equation*}
+    \bm{\delta}^{(l)} \equiv \frac{\partial L}{\partial \bm{z}^{(l)}} \quad \in \mathbb{R}^{n_l}
+\end{equation*}
+
+Using the error term $\bm{\delta}^{(l)}$, we calculate the gradients for the parameters of layer $l$ using the chain rule.
+
+For the weights $\bm{W}^{(l)}$, we seek a matrix of derivatives of the same shape as $\bm{W}^{(l)}$. This is given by the outer product of the error term and the input to the layer:
+\begin{align*}
+    \frac{\partial L}{\partial \bm{W}^{(l)}} & = \frac{\partial L}{\partial \bm{z}^{(l)}} \cdot \frac{\partial \bm{z}^{(l)}}{\partial \bm{W}^{(l)}} \\
+                                             & = \bm{\delta}^{(l)} (\bm{h}^{(l-1)})^T
+\end{align*}
+
+For the biases $\bm{b}^{(l)}$, the gradient is simply the error term itself, as the bias is added linearly:
+\begin{align*}
+    \frac{\partial L}{\partial \bm{b}^{(l)}} & = \frac{\partial L}{\partial \bm{z}^{(l)}} \cdot \frac{\partial \bm{z}^{(l)}}{\partial \bm{b}^{(l)}} \\
+                                             & = \bm{\delta}^{(l)}
+\end{align*}
+
+To calculate $\bm{\delta}^{(l)}$ for hidden layers, we propagate the error backwards from layer $l+1$. We use the vector chain rule, which involves the transpose of the Jacobian matrix of the transformation between layers:
+\begin{align*}
+    \bm{\delta}^{(l)} & = \left( \frac{\partial \bm{z}^{(l+1)}}{\partial \bm{z}^{(l)}} \right)^T \bm{\delta}^{(l+1)}
+\end{align*}
+Decomposing the Jacobian using the chain rule for the intermediate activation $\bm{h}^{(l)}$:
+\begin{align*}
+    \bm{\delta}^{(l)} & = \left( \frac{\partial \bm{z}^{(l+1)}}{\partial \bm{h}^{(l)}} \frac{\partial \bm{h}^{(l)}}{\partial \bm{z}^{(l)}} \right)^T \bm{\delta}^{(l+1)}
+\end{align*}
+We identify the partial derivatives:
+\begin{itemize}
+    \item The derivative of the linear transformation $\bm{z}^{(l+1)} = \bm{W}^{(l+1)}\bm{h}^{(l)} + \bm{b}^{(l+1)}$ with respect to $\bm{h}^{(l)}$ is the weight matrix:
+          $$ \frac{\partial \bm{z}^{(l+1)}}{\partial \bm{h}^{(l)}} = \bm{W}^{(l+1)} $$
+    \item The derivative of the element-wise activation $\bm{h}^{(l)} = \sigma(\bm{z}^{(l)})$ is a diagonal matrix of derivatives:
+          $$ \frac{\partial \bm{h}^{(l)}}{\partial \bm{z}^{(l)}} = \text{diag}(\sigma'(\bm{z}^{(l)})) $$
+\end{itemize}
+Substituting these back into the equation:
+\begin{align*}
+    \bm{\delta}^{(l)} & = \left( \bm{W}^{(l+1)} \text{diag}(\sigma'(\bm{z}^{(l)})) \right)^T \bm{\delta}^{(l+1)} \\
+                      & = \text{diag}(\sigma'(\bm{z}^{(l)}))^T (\bm{W}^{(l+1)})^T \bm{\delta}^{(l+1)}
+\end{align*}
+Since the diagonal matrix is symmetric and multiplication by a diagonal matrix is equivalent to the element-wise (Hadamard) product $\odot$, we arrive at the final recursive formula:
+\begin{equation*}
+    \bm{\delta}^{(l)} = \left( (\bm{W}^{(l+1)})^T \bm{\delta}^{(l+1)} \right) \odot \sigma'(\bm{z}^{(l)})
+\end{equation*}
+This equation allows us to compute the error at layer $l$ given the error at layer $l+1$, enabling the backpropagation of gradients from the output to the input.
+
+\subsection{Scalar Backpropagation}
+
+This section details the scalar derivation of backpropagation, highlighting the summation required when a neuron $i$ in layer $l$ connects to multiple neurons $k$ in layer $l+1$.
+
+\subsubsection{Notation}
+\begin{itemize}
+    \item $L$: Total loss function.
+    \item $w_{ji}^{(l)}$: Weight from neuron $i$ in layer $l-1$ to neuron $j$ in layer $l$.
+    \item $z_j^{(l)}$: Pre-activation of neuron $j$ in layer $l$.
+    \item $h_j^{(l)}$: Activation of neuron $j$ in layer $l$ (where $h_j^{(l)} = \sigma(z_j^{(l)})$).
+    \item $\delta_j^{(l)} \equiv \frac{\partial L}{\partial z_j^{(l)}}$: The local error term (gradient of loss w.r.t pre-activation).
+\end{itemize}
+
+\subsubsection{The Chain Rule with Summations}
+
+When calculating the gradient for an activation $h_j^{(l)}$, we must account for **every path** through which $h_j^{(l)}$ influences the loss. In a fully connected network, $h_j^{(l)}$ feeds into \textit{all} neurons $k$ in the next layer $l+1$.
+
+The total derivative is the sum of partial derivatives via each connection:
+$$ \frac{\partial L}{\partial h_j^{(l)}} = \sum_{k \in \text{Layer } l+1} \frac{\partial L}{\partial z_k^{(l+1)}} \cdot \frac{\partial z_k^{(l+1)}}{\partial h_j^{(l)}} $$
+
+Substituting the definition of the error term $\delta_k^{(l+1)} = \frac{\partial L}{\partial z_k^{(l+1)}}$ and the linear relationship $z_k^{(l+1)} = \sum_i w_{ki}^{(l+1)} h_i^{(l)} + b_k^{(l+1)}$:
+$$ \frac{\partial L}{\partial h_j^{(l)}} = \sum_{k} \delta_k^{(l+1)} \cdot w_{kj}^{(l+1)} $$
+
+\subsubsection{Recursive $\delta$ Calculation}
+
+To find the error term $\delta_j^{(l)}$ for the current layer, we use the chain rule:
+$$ \delta_j^{(l)} = \frac{\partial L}{\partial z_j^{(l)}} = \frac{\partial L}{\partial h_j^{(l)}} \cdot \frac{\partial h_j^{(l)}}{\partial z_j^{(l)}} $$
+
+Substitute the summation derived above and the derivative of the activation function $\sigma'(\cdot)$:
+$$ \delta_j^{(l)} = \left( \sum_{k} \delta_k^{(l+1)} w_{kj}^{(l+1)} \right) \cdot \sigma'(z_j^{(l)}) $$
+
+\subsubsection{Weight and Bias Gradients}
+
+Once $\delta_j^{(l)}$ is computed (recursively from the output layer backwards), the gradients for the parameters are simple scalar products:
+
+\textbf{1. Weights:}
+$$ \frac{\partial L}{\partial w_{ji}^{(l)}} = \frac{\partial L}{\partial z_j^{(l)}} \cdot \frac{\partial z_j^{(l)}}{\partial w_{ji}^{(l)}} = \delta_j^{(l)} \cdot h_i^{(l-1)} $$
+
+\textbf{2. Biases:}
+$$ \frac{\partial L}{\partial b_j^{(l)}} = \frac{\partial L}{\partial z_j^{(l)}} \cdot \frac{\partial z_j^{(l)}}{\partial b_j^{(l)}} = \delta_j^{(l)} $$
+
+\subsubsection{Summary of the Algorithm}
+
+\begin{enumerate}
+    \item \textbf{Forward Pass:} Compute all $z$ and $h$ values.
+    \item \textbf{Output Error:} Compute $\delta^{(L)}$ at the output layer (depends on loss function).
+    \item \textbf{Backward Pass:} For $l = L-1$ down to $1$:
+          $$ \delta_j^{(l)} = \sigma'(z_j^{(l)}) \sum_k w_{kj}^{(l+1)} \delta_k^{(l+1)} $$
+    \item \textbf{Updates:} $\Delta w_{ji}^{(l)} = -\eta (\delta_j^{(l)} h_i^{(l-1)})$
+\end{enumerate}
+
+\newpage
+
+\section{Initialization \& Regularization}
+
+\subsection{Weight Initialization}
+
+Avoid vanishing/exploding gradients during backprop.
+Initialize $\bm{\phi}_i \sim \mathcal{N}(0, \sigma^2)$.
+Below, $\alpha = 1$ for $\tanh$ and $\alpha = 2$ for ReLU.
+
+Note that $D_{\text{in}}$ is the number of inputs to a layer and $D_{\text{out}}$ is the number of outputs.
+
+\subsubsection{He-Kaiming Initialization (ReLU)}
+$$\sigma^2 = \frac{\alpha}{D_{\text{in}}} = \frac{2}{D_{\text{in}}} \qquad \Longleftarrow \text{Var}\big[h_i^{(l)}\big] = \text{Var}\big[h_i^{(l-1)}\big]$$
+
+\subsubsection{Xavier-Glorot Initialization (Tanh)}
+$$\sigma^2 = \frac{2\alpha}{D_{\text{in}} + D_{\text{out}}} = \frac{2}{D_{\text{in}} + D_{\text{out}}}$$
+
+\subsection{Bias-Variance Tradeoff}
+
+Estimate the generalization error
+$$E^\text{gen} = \E_{\bm{x}, \bm{y} \sim p_D(\bm{x}, \bm{y})} \big[ L(f_{\bm{\phi}}(\bm{x}), \bm{y}) \big] = \int L\big(f_{\bm{\phi}}(\bm{x}), \bm{y}\big) p_D(\bm{x}, \bm{y}) \, d\bm{x} \, d\bm{y}$$
+with a Monte-Carlo estimate:
+$$E^\text{gen} \approx \frac{1}{N} \sum_{i=1}^N L(f_{\bm{\phi}}(\bm{x}_i), \bm{y}_i)$$
+where $\{(\bm{x}_i, \bm{y}_i)\}_{i=1}^N$ are sampled from $p_D(\bm{x}, \bm{y})$.
+
+The expected generalization error if we train $f_{\bm{\phi}(\mathcal{D})}$ on datasets $\mathcal{D} = \{(\bm{x}_i, \bm{y}_i)\}_{i=1}^N$ assuming a squared loss:
+\begin{align*}\E_\mathcal{D}[E^\text{gen}] & = \E_{\bm{x}\sim p_D(\bm{x})}\bigg[ \big[\bar{\bm{y}}(\bm{x}) - \bar{f}_{\bm{\phi}(\mathcal{D})}(\bm{x})\big]^2 + \text{Var}_\mathcal{D}\big[f_{\bm{\phi}(\mathcal{D})}(\bm{x})\big] + \text{Var}\big[\bm{y}(\bm{x})\big] \bigg] \\
+                                           & = \text{Bias}^2 + \text{Variance} + \text{Irreducible Error}
+\end{align*}
+
+\subsection{Regularization Techniques}
+
+\subsubsection{Weight Decay}
+
+$$L'(\bm{\phi}) = L(\bm{\phi}) + g(\bm{\phi})$$
+
+\begin{itemize}
+    \item $\ell^2$-regularization \begin{itemize}
+              \item $g(\bm{\phi}) = \frac{\lambda}{2} ||\bm{\phi}||^2_2 = \frac{\lambda}{2} \sum_{i=1}^D \phi_i^2$
+              \item Gradient: $\frac{\partial g(\bm{\phi})}{\partial \bm{\phi}_j} = \lambda \bm{\phi}_j$
+          \end{itemize}
+    \item $\ell^1$-regularization \begin{itemize}
+              \item $g(\bm{\phi}) = \lambda ||\bm{\phi}||_1 = \lambda \sum_{i=1}^D |\phi_i|$
+              \item Gradient: $\frac{\partial g(\bm{\phi})}{\partial \bm{\phi}_j} = \lambda \text{sign}(\bm{\phi}_j)$
+          \end{itemize}
+\end{itemize}
+
+\subsubsection{Batch Normalization}
+For a mini-batch of size $m$, normalize inputs $\bm{z}^{(l)}$ (before activation):
+\begin{align*}
+    \bm{\mu}                & = \frac{1}{m} \sum_{i=1}^m \bm{z}^{(l)(i)}                           \\
+    \bm{\sigma}^2           & = \frac{1}{m} \sum_{i=1}^m (\bm{z}^{(l)(i)} - \bm{\mu})^2            \\
+    \hat{\bm{z}}^{(l)(i)}   & = \frac{\bm{z}^{(l)(i)} - \bm{\mu}}{\sqrt{\bm{\sigma}^2 + \epsilon}} \\
+    \tilde{\bm{z}}^{(l)(i)} & = \gamma \odot \hat{\bm{z}}^{(l)(i)} + \beta
+\end{align*}
+where $\gamma$ and $\beta$ are learnable scale and shift parameters.
+
+\subsubsection{Other Regularization Techniques}
+
+\begin{itemize}
+    \item \textbf{Early stopping}
+    \item \textbf{Data augmentation}
+    \item \textbf{Injecting noise} to input data, activations, or weights
+    \item \textbf{Ensemble methods}: bagging = bootstrap aggregating = resampling with replacement
+    \item \textbf{Dropout}: \begin{itemize}
+              \item Randomly delete nodes with probability $\rho = 0.5$
+              \item At test time, multiply weights by $\rho$
+              \item Use as an ensemble of $2^\text{(\# of hidden nodes)}$ networks
+          \end{itemize}
+    \item \textbf{Transfer learning}
+    \item \textbf{Multi-task learning}
+    \item \textbf{Self-supervised learning}: generative (with masks) or contrastive (with pairs)
+\end{itemize}
+
+\vspace{2cm}
+
+\section{Residual Neural Networks}
+
+Add an identity connection to prevent shattered (uncorrelated) gradients:
+$$\bm{h}^{(l)} = \bm{h}^{(l-1)} + f_{\bm{\phi}^{(l)}}(\bm{h}^{(l-1)})$$
+Allows gradients to flow through:
+$$\frac{\partial \bm{h}^{(l)}}{\partial \bm{h}^{(l-1)}} = I + \frac{\partial f_{\bm{\phi}^{(l)}}(\bm{h}^{(l-1)})}{\partial \bm{h}^{(l-1)}}$$
+
+\newpage
+
+\section{Convolutional Neural Networks (CNNs)}
+
+Allow for \textbf{local connectivity} and \textbf{parameter sharing}.
+
+\begin{minipage}{0.45\textwidth}
+    \renewcommand{\arraystretch}{1.5}
+    \begin{tabular}{l | l | l}
+        Name               & Symbol   & Dimension                                               \\
+        \hline
+        Input Image        & $\bm{X}$ & $H \times W \times c_{\text{in}}$                       \\
+        Kernel/Filter      & $\bm{W}$ & $w \times h \times c_{\text{in}} \times c_{\text{out}}$ \\
+        Bias               & $\bm{b}$ & $c_{\text{out}} \times 1$                               \\
+        Output Feature Map & $\bm{Z}$ & $H' \times W' \times c_{\text{out}}$                    \\
+        Stride             & $s$      & Scalar (or per dim)                                     \\
+        Padding            & $p$      & Scalar (or per dim)                                     \\
+    \end{tabular}
+\end{minipage}
+\hfill
+\begin{minipage}{0.45\textwidth}
+    \begin{center}
+        % \includegraphics[width=\textwidth]{cnn_diagram} % Placeholder for convolution diagram
+    \end{center}
+\end{minipage}
+
+\subsection{Equi- \& Invariance}
+
+FCN's have no notion of locality. We want layers to be \textbf{equivariant} to translations.
+
+\begin{itemize}
+    \item \textbf{Equivariant}: $f(t(x)) = t(f(x))$
+    \item \textbf{Invariant}: $f(t(x)) = f(x)$
+\end{itemize}
+
+The convolution operation is \textbf{equivariant} to translations and the FCN at the end introduces \textit{invariance} to translations.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{convolution.jpeg}
+\end{figure}
+
+\subsection{Convolution Operation}
+
+Replace vectors with \textbf{tensors} indexed by $(x,y,c)$:
+\begin{itemize}
+    \item Width: $x$
+    \item Height: $y$
+    \item \textbf{Channel}: $c$
+\end{itemize}
+Convolution weights are tensors $\bm{W} \in \mathbb{R}^{w \times h \times c_{\text{in}} \times c_{\text{out}}}$.
+$$h_{x,y,c}^{(l)} = \sum_{c', m, n} h_{x+m, y+n, c'}^{(l-1)} W_{m,n,c',c} + b_c$$
+Each convolution produces a new set of hidden variables = \textbf{feature map} or \textbf{channel}.
+
+\subsection{Pooling}
+
+\begin{itemize}
+    \item \textbf{Increase channels} in \textbf{convolution layers}
+    \item \textbf{Decrease resolution} in \textbf{pooling layers}
+\end{itemize}
+
+Variants of pooling: \textit{max pooling}, \textit{average pooling}, \textit{inverse pooling} (upsampling)
+
+\subsection{Effective kernel size \& receptive field}
+
+Let $d$ be the \textit{dilation rate}. It allows us to exponentially increase
+the receptive field without losing resolution (pooling) or
+increasing the number of parameters. This is crucial for tasks
+like semantic segmentation.
+
+In a standard convolution $(d=1)$, adjacent kernel weights are applied to adjacent input pixels.
+In a \textit{dilated convolution} $(d>1)$, the kernel weights are spaced apart by $d$ pixels. Specifically, there are $d-1$ zeros inserted between each weight.
+If we stack layers and double the dilation rate at each layer ($d=1,2,4,8,\ldots$), the receptive field grows \textit{exponentially} while the number of parameters remains \textit{constant} and the resolution (image size) stays \textit{constant} (no pooling).
+
+Taking the dilation rate $d$ into account, the \textit{effective kernel size} (assuming width equals height) is
+$$\tilde{k} = (k-1) \cdot d + 1$$
+The \textbf{receptive field} $R_l$ (input area seen by a unit in layer $l$) accumulates this effective size. For a network with stride $s=1$:
+$$ R_l = R_{l-1} + (\tilde{k}_l - 1) $$
+By doubling $d$ at each layer, $\tilde{k}$ grows linearly, but the total $R_l$ grows exponentially.
+
+\subsection{Output dimensionality}
+
+Given:
+\begin{itemize}
+    \item Input: $C_i \times w \times h$
+    \item Filters: $C_i \times w_f \times h_f$
+    \item Number of filters: $C_o$
+    \item Stride: $s$
+    \item Padding: $p$
+\end{itemize}
+
+Output (Note: use \textit{effective} kernel sizes $\tilde{w}_f, \tilde{h}_f$. If $d=1$, then $\tilde{w}_f = w_f$).:
+\begin{itemize}
+    \item $C_o$ channels
+    \item Output width: $$\left\lfloor \frac{w + 2p - w_f}{s} + 1 \right\rfloor$$
+    \item Output height: $$\left\lfloor \frac{h + 2p - h_f}{s} + 1 \right\rfloor$$
+\end{itemize}
+
+Each channel is a weighted sum of $C_i$ input channels.\\
+If we consider the kernel as a 4D tensor, the weights are shared across all output channels.\\
+If we consider the kernel as a 3D tensor, each of the $C_o$ kernels are different filters.
+
+Each convolutional layer has $C_i \cdot C_o \cdot w_f \cdot h_f$ weights and $C_o$ biases. \\
+MaxPool halves the spatial dimensions: e.g. $13 \times 13 \times 256 \rightarrow 6 \times 6 \times 256$. \\
+SoftMax layer has no parameters.
+
+\newpage
+
+\section{Recurrent Neural Networks (RNNs)}
+
+\begin{itemize}
+    \item Input of length $T$: $$\mathbf{x} = \{\bm{x}_t\}_{t=1}^T, \qquad \bm{x}_t \in \mathbb{R}^{D_x}$$
+    \item Output of length $S$: $$\mathbf{y} = \{\hat{\bm{y}}_t\}_{t=1}^{S}, \qquad \hat{\bm{y}}_t \in \mathbb{R}^{D_y}$$
+    \item The length $T$ and $S$ may vary between datapoints
+    \item The length of the two sequences may differ: $T \neq S$
+\end{itemize}
+
+\vspace{1cm}
+
+\begin{minipage}{0.45\textwidth}
+    \renewcommand{\arraystretch}{1.5}
+    \begin{tabular}{l | l | l}
+        Name                & Symbol                       & Dimension        \\
+        \hline
+        Sequence length     & $T$                          & Scalar           \\
+        Input at Time $t$   & $\bm{x}_t$                   & $D_x \times 1$   \\
+        Hidden State at $t$ & $\bm{h}_t$                   & $D_h \times 1$   \\
+        Output at $t$       & $\hat{\bm{y}}_t$             & $D_y \times 1$   \\
+        Input Weights       & $\bm{W}^{(i)}$               & $D_h \times D_x$ \\
+        Recurrent Weights   & $\bm{W}^{(\rightarrow i)}$   & $D_h \times D_h$ \\
+        Output Weights      & $\bm{W}^{(L)}$               & $D_y \times D_h$ \\
+        Biases              & $\bm{b}^{(h)}, \bm{b}^{(y)}$ &                  \\
+    \end{tabular}
+\end{minipage}
+\hfill
+\begin{minipage}{0.55\textwidth}
+    \begin{center}
+        \includegraphics[width=\textwidth]{rrn}
+    \end{center}
+\end{minipage}
+
+\subsection{Recurrent Neural Network (RNN)}
+
+The RNN takes a full sequence of length $S$ as input and outputs a full sequence of length $T$, as well as the final hidden state $\bm{h}_T$.
+RNNs can be stacked into $L$ layers. In this case, the first layer takes the inputs $\bm{x}_t$ in a sequence of length $S$. Subsequent layers $\ell$ take the outputs $\bm{h}_t^{(\ell-1)}$ of the previous layer $\ell-1$ as input.
+Consider an RNN with $h$-dimensional hidden states ($h_\text{out}$) and $d$-dimensional inputs $\bm{x}_t \in \R^d$. We call the \texttt{init} and \texttt{forward} methods as follows:
+\begin{align*}
+    \texttt{self.rnn} & \texttt{ = } \texttt{nn.RNN(input\_size=d,hidden\_size=h,num\_layers=L,batch\_first=True)} \\
+    \texttt{z, h}     & \texttt{ = } \texttt{self.rnn(x)}
+\end{align*}
+First note that in an RNN, the input sequence has the same length as the output sequence, thus $S = T$. Further note that we set \texttt{batch\_first = True} to make the input and output dimensions $(B, T, d)$ and $(B, T, h)$, respectively.
+
+\begin{itemize}
+    \item \texttt{x} is the (batched) input sequence $\bm{x} = \{\bm{x}_1, \ldots, \bm{x}_T\}$ of length $T$, so $\bm{x}$ has dimension $(B, T, d)$, because each $\bm{x}_t \in \R^d$.
+
+    \item \texttt{z} is a sequence of length $T$, representing the outputs $\bm{h} \in \R^h$ of the \textbf{last layer} at \textbf{each timestep}. The output dimension of \texttt{z} is therefore $(B, T, h)$.
+
+    \item \texttt{h} is the final hidden state $\bm{h}_T$ (at timestep $t=T$) \textbf{in each layer}. Note that even though we set \texttt{batch\_first=True}, this output has dimension $(L, \red{B}, h)$ where $L$ is the number of layers, $B$ is the batch, $h$ is the hidden size.
+\end{itemize}
+
+\subsection{MLE for RNNs}
+
+For an input-output pair
+$$\begin{cases}
+        \bm{x} = \bm{x}_1, \ldots, \bm{x}_T \\
+        \bm{y} = \bm{y}_1, \ldots, \bm{y}_T
+    \end{cases}$$
+we usually assume \begin{align}
+    p(\bm{y} \mid f_{\bm{\phi}}(\bm{x})) & = \prod_{t=1}^T p(\bm{y}_t \mid f_{\bm{\phi}}(\bm{x}_t))        \\
+                                         & = \prod_{t=1}^T p(\bm{y}_t \mid f_{\bm{\phi}}(\bm{x}_{\leq t}))
+\end{align}
+
+\subsection{RNN Variants}
+\begin{itemize}
+    \item \textbf{Deep RNNs:} Stack layers such that the output of layer $l$ is the input to layer $l+1$:
+          $$h_t^{(l)} = \sigma(W^{(l)} h_t^{(l-1)} + W^{(\rightarrow l)} h_{t-1}^{(l)} + b^{(l)})$$
+    \item \textbf{Bidirectional RNNs:} Use two hidden layers, one processing forward ($h^{(f)}$) and one backward ($h^{(b)}$):
+          $$y_t = \sigma(W^{(out)} [h_t^{(f)}; h_t^{(b)}] + b^{(out)})$$
+\end{itemize}
+
+\subsection{Long Short-Term Memory (LSTM)}
+
+LSTMs solve the ``forgetting problem'' of RNNs by using a cell state $\bm{C}_t$ to store information over time.
+
+The LSTM takes a full sequence of length $S$ as input and outputs a full sequence of length $T$, as well as a tuple $(\bm{h}_T, \bm{C}_T)$ representing the final hidden state and cell memory.
+LSTMs can be stacked into $L$ layers, just like RNNs. In this case, the first layer takes the input $\bm{x}$. Subsequent layers $\ell$ take the outputs $\bm{h}_t^{(\ell-1)}$ of the previous layer $\ell-1$ as input.
+Consider an LSTM with $h$-dimensional hidden states ($h_\text{out}$) and $d$-dimensional inputs $\bm{x}_t \in \R^d$. We call the \texttt{init} and \texttt{forward} methods as follows:
+\begin{align*}
+    \texttt{self.lstm} & \texttt{ = } \texttt{nn.LSTM(input\_size=d,hidden\_size=h,num\_layers=L,batch\_first=True)} \\
+    \texttt{z, (h,c)}  & \texttt{ = } \texttt{self.lstm(x)}
+\end{align*}
+First note that in an LSTM, the input sequence has the same length as the output sequence, thus $S = T$. Further note that we set \texttt{batch\_first = True} to make the input and output dimensions $(B, T, d)$ and $(B, T, h)$, respectively.
+
+\begin{itemize}
+    \item \texttt{x} is the (batched) input sequence $\bm{x} = \{\bm{x}_1, \ldots, \bm{x}_T\}$ of length $T$, so $\bm{x}$ has dimension $(B, T, d)$, because each $\bm{x}_t \in \R^d$.
+
+    \item \texttt{z} is a sequence of length $T$, representing the outputs $\bm{h} \in \R^h$ of the \textbf{last layer} at \textbf{each timestep}. The output dimension of \texttt{z} is therefore $(B, T, h)$.
+
+    \item \texttt{(h,c)} is a tuple of the final hidden state $\bm{h}_T$ and cell memory $\bm{C}_T$ of the final cell (timestep $t=T$) \textbf{in each layer}. Note that even though we set \texttt{batch\_first=True}, the output has dimension $(L, \red{B}, h)$ where $L$ is the number of layers, $B$ is the batch, $h$ is the hidden size.
+\end{itemize}
+
+\renewcommand{\arraystretch}{2}
+\begin{center}\begin{tabular}{l | l}
+        Gate/Component & Formula                                                                          \\
+        \hline
+        Forget Gate    & $\bm{f}_t = \sigma\big(\bm{W}_f [\bm{h}_{t-1}; \bm{x}_t] + \bm{b}_f\big)$        \\
+        Input Gate     & $\bm{i}_t = \sigma\big(\bm{W}_i [\bm{h}_{t-1}; \bm{x}_t] + \bm{b}_i\big)$        \\
+        Cell Candidate & $\tilde{\bm{C}}_t = \tanh\big(\bm{W}_c [\bm{h}_{t-1}; \bm{x}_t] + \bm{b}_c\big)$ \\
+        Cell State     & $\bm{C}_t = \bm{f}_t \odot \bm{C}_{t-1} + \bm{i}_t \odot \tilde{\bm{C}}_t$       \\
+        Output Gate    & $\bm{o}_t = \sigma\big(\bm{W}_o [\bm{h}_{t-1}; \bm{x}_t] + \bm{b}_o\big)$        \\
+        Hidden State   & $\bm{h}_t = \bm{o}_t \odot \tanh(\bm{C}_t)$                                      \\
+    \end{tabular}
+\end{center}
+
+\subsubsection{Sequence-to-Sequence modelling with LSTMs}
+
+We can do sequence-to-sequence modelling (e.g. machine translation) with LSTMs by using an encoder-decoder architecture.
+
+The first LSTM is the encoder. It gets the input sequence (in the to-be-translated language) and encodes it until it reaches the \texttt{<EOS>} token as $\bm{h}_T$.
+At this point, the final state $(\bm{h}_T, \bm{C}_T)$ is passed to the decoder.
+
+The decoder is a second LSTM that takes the final state $(\bm{h}_T, \bm{C}_T)$
+of the encoder as its own initial hidden state $(\bm{h}_0, \bm{C}_0)$
+in the first cell. That first cell of the decoder also takes the start of sequence
+(\texttt{<SOS>}) as first input $\bm{x}_1$. Based on this first hidden state and input,
+the decoder outputs the first word of the translation $\bm{y}_1$.
+This first word is passed to the second cell, which outputs the second word of the translation $\bm{y}_2$.
+This process is repeated until the \texttt{<EOS>} token is generated.
+
+Note that all hidden states $\{\bm{h}_1, \ldots, \bm{h}_{T-1}\}$ from the encoder, apart from the last one, are thrown away.
+
+\subsubsection{Problems with the LSTM}
+The LSTM solves the exploding/vanishing gradient problems of RNNs, but still has issues:
+\begin{itemize}
+    \item Last state $(\bm{h}_T, \bm{C}_T)$ has to encode the entire input sequence in order to be passed to the decoder.
+    \item Sequential $\rightarrow$ not parallelizable
+\end{itemize}
+
+Attention can be used to solve the first issue: it allows the decoder to attend to all hidden states $\bm{h}_1, \ldots, \bm{h}_{T}$ from the encoder.
+
+What about the second problem? It turns out that \textit{Attention Is All You Need} and we can replace the LSTMs with transformers, as we will discuss in the next section.
+
+\newpage
+
+\section{Transformers \& Attention}
+
+\subsection{Notation and Dimensions}
+
+\begin{minipage}{0.6\textwidth}
+    \renewcommand{\arraystretch}{1.5}
+    \begin{tabular}{l | l | l}
+        Name                                   & Symbol   & Dimension      \\
+        \hline
+        Source sequence length                 & $S$      & -              \\
+        Target sequence length                 & $T$      & -              \\
+        Input Embeddings                       & $\bm{X}$ & $S \times D_k$ \\
+        Queries                                & $\bm{Q}$ & $T \times D_k$ \\
+        Keys                                   & $\bm{K}$ & $S \times D_k$ \\
+        Values                                 & $\bm{V}$ & $S \times D_v$ \\
+        Attention Weights                      & $\bm{A}$ & $T \times S$   \\
+        Outputs                                & $\bm{Y}$ & $T \times D_v$ \\
+        Number of Heads                        & $P$      & -              \\
+        Embedding Dimension of $\text{head}_i$ & $D_i$    & $D_v / P$      \\
+        Batch dimension                        & $B$      & -              \\
+    \end{tabular}
+\end{minipage}
+\hfill
+\begin{minipage}{0.4\textwidth}
+    \begin{center}
+        \includegraphics[width=\textwidth]{transformer}
+    \end{center}
+\end{minipage}
+
+\vspace{0.5cm}
+Note that usually: $$S=T, \qquad D := D_k = D_v$$
+
+\subsection{Scaled Dot-Product Attention}
+Compute the query, key and value matrices:
+$$
+    \bm{Q} = \bm{X_Q} \bm{W}_Q \in \R^{B \times T \times D_k} \qquad
+    \bm{K} = \bm{X_K} \bm{W}_K \in \R^{B \times S \times D_k} \qquad
+    \bm{V} = \bm{X_V} \bm{W}_V \in \R^{B \times S \times D_v}
+$$
+Now, compute attention as the weighted sum of values:
+$$\mathrm{Attention}(\bm{Q}, \bm{K}, \bm{V}) = \text{softmax}_\text{row}\left( \frac{\bm{Q} \bm{K}^T}{\sqrt{D_k}} \right)\bm{V} \in \R^{B \times T \times D_v}$$
+where ${\bm{Q}} \cdot {\bm{K}^T} \in \mathbb{R}^{B \times T \times S}$ and each row of the softmax indicates how ``important'' each key is for each query.
+Note that the runtime is quadratic in the sequence length $T$ (assuming $T = S$): $\mathcal{O}(B \times T^2 \times D_k)$.
+
+\subsection{Self-Attention}
+
+In \textit{self}-attention, the queries, keys and values are computed from the \textit{same input} $\bm{X}$:
+$$
+    \bm{Q} = \bm{X} \bm{W}_Q \qquad
+    \bm{K} = \bm{X} \bm{W}_K \qquad
+    \bm{V} = \bm{X} \bm{W}_V
+$$
+
+\subsection{Multi-Headed Attention}
+
+In multi-headed attention, we use $P$ independent attention mechanisms (heads) to capture \textit{different} aspects of the input.
+Typically each head $\text{head}_i$ uses $D/P$ dimensions, such that $D_h = D / P$.
+
+Compute the keys, queries and values for each head:
+$$
+    \bm{Q}_i = \bm{X} \bm{W}_i^Q \in \R^{B \times T \times D_h} \qquad
+    \bm{K}_i = \bm{X} \bm{W}_i^K \in \R^{B \times S \times D_h} \qquad
+    \bm{V}_i = \bm{X} \bm{W}_i^V \in \R^{B \times S \times D_h}
+$$
+
+Of course, \texttt{for}-loops are not efficient, so we can compute all $P$ heads at once:
+$$
+    \bm{Q} = \bm{X} \bm{W}_Q \in \R^{B \times T \times D} \qquad
+    \bm{K} = \bm{X} \bm{W}_K \in \R^{B \times S \times D} \qquad
+    \bm{V} = \bm{X} \bm{W}_V \in \R^{B \times S \times D}
+$$
+
+Attention is, however, computed \textit{per head}, so we need to decouple these giant matrices $\bm{Q}$, $\bm{K}$ and $\bm{V}$ again into the matrices $\bm{Q}_i$, $\bm{K}_i$ and $\bm{V}_i$.
+We do this by converting $D$ to $P \times D_h$, which results in dimensions $B \times T \times P \times D_h$.
+
+To compute the attention of of the $P$ heads, we need to compute the product $\bm{Q}_i \bm{K}_i^T$ for each head$_i$.
+Therefore, the last dimension of the $\bm{Q}_i$ and $\bm{K}_i$ matrices must be the same. We swap the Sequence ($T$) and Heads ($P$) axes:
+$$B \times \red{T} \times \red{P} \times D_h \quad \longrightarrow \quad B \times \red{P} \times \red{T} \times D_h$$
+Now, to the GPU, this looks like a batch of $B \cdot P$ separate matrices, each of size $T \times D_h$.
+We multiply $\bm{Q}_i$ by $\bm{K}_i^T$. The transpose happens on the last two dimensions:
+$$\bm{Q}_i: (B \times P \times T \times D_h), \quad \bm{K}_i^T: (B \times P \times D_h \times T) \quad \longrightarrow \quad \bm{Q}_i \bm{K}_i^T: (B \times P \times T \times T)$$
+
+We can now compute attention for each head:
+$$
+    \text{head}_i = \text{softmax}\left( \frac{\bm{Q}_i \bm{K}_i^T}{\sqrt{D_k}} \right)\bm{V}_i \qquad \in \R^{B \times P \times T \times D_h}
+$$
+We need to put the sequence back together. Swap $H$ and $T$ again. Then, merge the last two dimensions $P$ and $D_h$ back into $D$,
+by concatenating the $P$ heads. Finally, project up to original dimension $D$:
+$$
+    \text{MultiHead}(\bm{Q}, \bm{K}, \bm{V}) = \text{Concat}(\text{head}_1, \ldots, \text{head}_P)  \bm{W}_O
+$$
+
+\subsection{Transformer}
+
+One transformer layer consists of
+\begin{itemize}
+    \item \textbf{Multi-Head Self-Attention}: as described above.
+    \item \textbf{Residual Connection}: Add the input to the output of the multi-head self-attention.
+    \item \textbf{Layer Normalization}: Each of the $B$ batches is a sequence of $T$ tokens, each of dimension $D$. Take one of these batches, and thus one sequence.
+          For each of the $T$ tokens in the sequence, compute the mean and variance across the embedding dimension $D$:
+          $$\bm{\mu}_t = \frac{1}{D}\sum_{d=1}^D \bm{x}_{td} \qquad \bm{\sigma}_t = \sqrt{\frac{1}{D}\sum_{d=1}^D (\bm{x}_{td} - \bm{\mu}_t)^2}$$
+          Now normalize the tokens by subtracting the mean and dividing by the
+          standard deviation.
+    \item \textbf{Feed-Forward Network}: each of the $T$ tokens in the sequence is processed \textit{independently} by $T$ feed-forward networks. Note, however, that all of these networks \textit{share} the \textit{same parameters}!
+    \item \textbf{Residual Connection}: Add the input to the output of the feed-forward network.
+    \item \textbf{Layer Normalization}: another one.
+\end{itemize}
+
+\subsubsection{Positional encodings}
+The attention mechanism is invariant to the order of the input sequence.
+Furthermore, all other layers in the transformer are not dependent on the order of the input sequence.
+To preserve the order, we must thus add \textit{positional encodings} to the input sequence, e.g. by applying a sinusoidal function.
+
+\subsection{Encoders \& Decoders with Transformers}
+\subsubsection{Masking}
+Masking is crucial to control which tokens the attention mechanism can ``see``. We modify the attention score calculation:
+$$ \text{Attention}(\bm{Q}, \bm{K}, \bm{V}) = \text{softmax}\left( \frac{\bm{Q} \bm{K}^T}{\sqrt{D_k}} + \bm{M} \right)\bm{V} $$
+where $\bm{M}$ is a mask matrix added to the scaled dot products:
+\begin{itemize}
+    \item \textbf{Padding mask}: Used in \textit{all} architectures. $M_{ij} = -\infty$ if the token at index $j$ is a padding token (to ignore variable length sequences).
+    \item \textbf{Look-ahead (causal) mask}: Used in \textit{decoders}. $M_{ij} = -\infty$ if $j > i$. This ensures position $i$ can only attend to past positions ($j \le i$), preventing the model from ``cheating`` by seeing the future.
+\end{itemize}
+
+\subsubsection{Encoder Only (e.g., BERT)}
+\begin{itemize}
+    \item \textbf{Input}: The source sequence $\bm{X} \in \mathbb{R}^{S \times D}$.
+    \item \textbf{Visibility}: \textit{Bidirectional}. There is no causal mask. Every token can attend to every other token in the sequence ($S \times S$ context).
+    \item \textbf{Goal}: Generate a rich, contextualized embedding for every token in the input. Useful for classification or sentiment analysis.
+    \item \textbf{Training}: Trained by replacing tokens in the input with \texttt{<mask>} and predicting these tokens using a softmax over the vocabulary.
+\end{itemize}
+
+\subsubsection{Decoder Only (e.g., GPT)}
+\begin{itemize}
+    \item \textbf{Input}: The target sequence $\bm{X} \in \mathbb{R}^{T \times D}$
+    \item \textbf{Masked Self-Attention}: We apply the \textbf{causal mask}. The attention matrix is strictly lower-triangular (or masked with $-\infty$ in the upper triangle).
+    \item \textbf{Goal}: Autoregressive generation. Predict the next token $t+1$ based only on tokens $1 \dots t$.
+\end{itemize}
+
+\subsubsection{Encoder-Decoder}
+
+This architecture connects an \textit{encoder} (processing the source) to a \textit{decoder} (generating the target). The encoder is identical to the one described above. The decoder has the following modifications:
+\begin{itemize}
+    \item \textbf{Masked Self-Attention}: The decoder attends to its own previous outputs (target sequence $T$).
+    \item \textbf{Cross-Attention (Encoder-Decoder Attention)}: This layer connects the two stacks. The queries of the decoder attend to the keys and values of the encoder.
+\end{itemize}
+
+\subsubsection{Cross-Attention Mechanics}
+In this sub-layer, the decoder extracts information from the encoder's output.
+\begin{itemize}
+    \item \textbf{Queries ($\bm{Q}$)}: Come from the \textit{decoder}. Dimensions: $T \times D$.
+    \item \textbf{Keys ($\bm{K}$) \& Values ($\bm{V}$)}: Come from the \textit{encoder}. Dimensions: $S \times D$.
+\end{itemize}
+This allows the decoder to focus on relevant parts of the source sentence ($S$) for every position in the target sentence ($T$).
+$$ \text{CrossAttn} = \text{softmax}\left( \frac{\bm{Q}_{\text{dec}} \bm{K}_{\text{enc}}^T}{\sqrt{D_k}} \right) \bm{V}_{\text{enc}} $$
+
+\newpage
+
+\section{Unsupervised Deep Learning}
+
+\subsection{Autoencoders (AE)}
+
+Encoder $f_{\phi}: \bm{x} \to \bm{z}$, Decoder $g_{\theta}: \bm{z} \to \hat{\bm{x}}$.
+
+\begin{minipage}{0.45\textwidth}
+    \renewcommand{\arraystretch}{1.5}
+    \begin{tabular}{l | l | l}
+        Name          & Symbol         & Dimension                    \\
+        \hline
+        Input         & $\bm{x}$       & $D_x \times 1$               \\
+        Latent Code   & $\bm{z}$       & $D_z \times 1$ ($D_z < D_x$) \\
+        Reconstructed & $\hat{\bm{x}}$ & $D_x \times 1$               \\
+    \end{tabular}
+\end{minipage}
+\hfill
+\begin{minipage}{0.45\textwidth}
+    \begin{center}
+        % \includegraphics[width=\textwidth]{ae_diagram} % Placeholder for AE architecture
+    \end{center}
+\end{minipage}
+
+\begin{itemize}
+    \item \textbf{Goal}: Learn compressed representation $\bm{z}$ (bottleneck).
+    \item \textbf{Loss}: Reconstruction loss (e.g., MSE).
+          \begin{align*}
+              L(\bm{x}, \hat{\bm{x}}) = ||\bm{x} - \hat{\bm{x}}||^2 = ||\bm{x} - g_\theta(f_\phi(\bm{x}))||^2
+          \end{align*}
+\end{itemize}
+
+\subsubsection{Limitation}
+
+We want to sample the latent space $\bm{z}$ to generate new data. However, in standard AE, the latent space is not regularized, so sampling from it (e.g., $\bm{z} \sim \mathcal{N}(0, I)$) does not guarantee meaningful generations.
+
+\subsection{Deep Latent variable models}
+
+\newcommand{\colDecoder}[1]{\color{MidnightBlue}#1\color{black}}
+\newcommand{\colEncoder}[1]{\color{Orange}#1\color{black}}
+\newcommand{\colVarFam}[1]{\color{WildStrawberry}#1\color{black}}
+\newcommand{\colOutFam}[1]{\color{OliveGreen}#1\color{black}}
+
+\vspace{1em}
+
+\begin{center}
+    \renewcommand{\arraystretch}{1.5}
+    \begin{tabular}{l | l}
+        \textbf{Name}                                   & \textbf{Symbol / Formula}                                                                           \\
+        \hline \hline
+        Observed variable                               & $\bm{x} \in \mathcal{X}$                                                                            \\
+        Continous latent variable                       & $\bm{z} \in \mathcal{Z}^M$                                                                          \\
+        \colDecoder{Decoder}                            & $\colDecoder{f_{\bm{\theta}} : \mathcal{Z}^M \to H}$                                                \\
+        \colOutFam{Output density}                      & $\{\colOutFam{\Phi}(\cdot | \bm{\eta})\}_{\bm{\eta} \in H}$                                         \\
+        Output density parameters                       & $\bm{\eta}_i \in H$                                                                                 \\
+        Prior                                           & $\bm{z} \sim p(\bm{z})$                                                                             \\
+        Observation model                               & $\bm{x} \sim p_{\bm{\theta}}(\bm{x} | \bm{z}) = \colOutFam{\Phi}(\bm{x} | f_{\bm{\theta}}(\bm{z}))$ \\
+        \hline
+        Variational posterior                           & $q_{\bm{\phi}}(\bm{z} | \bm{x}) = \colVarFam{\Psi}(\bm{z} | g_{\bm{\phi}}(\bm{x}))$                 \\
+        \colEncoder{Encoder / inference neural network} & $\colEncoder{g_{\bm{\phi}} : \mathcal{X} \to K}$                                                    \\
+        \colVarFam{Variational distribution}            & $\{\colVarFam{\Psi}(\cdot | \bm{\kappa})\}_{\bm{\kappa} \in K}$                                     \\
+        Variational parameters                          & $\bm{\kappa}_i \in K$
+    \end{tabular}
+\end{center}
+
+\vspace{1em}
+
+We usually assume $\bm{z} \sim \mathcal{N}(\bm{0}, I)$.
+
+\newpage
+
+\textbf{1. Real-valued data (Gaussian):}
+\begin{align*}
+    \bm{x}      & \in \mathbb{R}^D                                                   & \mathcal{X}                          & = \mathbb{R}^D                                                          \\
+    \mathcal{Z} & = \mathbb{R}^M                                                     & H                                    & = \mathbb{R}^D \times \mathbb{R}_+^D \quad \text{(Means and Variances)} \\
+    \bm{\eta}   & = \colDecoder{f_{\bm{\theta}}(\bm{z})} = (\bm{\mu}, \bm{\sigma}^2) & \colOutFam{\Phi}(\bm{x} | \bm{\eta}) & = \mathcal{N}(\bm{x} | \bm{\mu}, \text{diag}(\bm{\sigma}^2))
+\end{align*}
+
+\textbf{2. Binary data (Bernoulli):}
+\begin{align*}
+    \bm{x}      & \in \{0,1\}^D                                                             & \mathcal{X}                          & = \{0, 1\}^D                                   \\                                                                          \\
+    \mathcal{Z} & = \mathbb{R}^M                                                            & H                                    & = [0, 1]^D \quad \text{(Probabilities)}        \\
+    \bm{\eta}   & = \colDecoder{f_{\bm{\theta}}(\bm{z})} = \sigma(\text{NeuralNet}(\bm{z})) & \colOutFam{\Phi}(\bm{x} | \bm{\eta}) & = \prod_{i=1}^D \text{Bernoulli}(x_i | \eta_i)
+\end{align*}
+
+\textbf{3. Categorical data (one-hot-encoded categorical distribution):}
+\begin{align*}
+    \bm{x}      & \in \{0,1\}^{D \times K} \text{ s.t. } \sum_k x_{ik}=1                            & \mathcal{X}                          & \subset \{0,1\}^{D \times K}                                              \\
+    \mathcal{Z} & = \mathbb{R}^M                                                                    & H                                    & = \left\{ \bm{\pi} \in [0, 1]^{D \times K} : \sum_k \pi_{ik} = 1 \right\} \\
+    \bm{\eta}   & = \colDecoder{f_{\bm{\theta}}(\bm{z})} = \text{Softmax}(\text{NeuralNet}(\bm{z})) & \colOutFam{\Phi}(\bm{x} | \bm{\eta}) & = \prod_{i=1}^D \prod_{k=1}^K (\eta_{ik})^{x_{ik}}
+\end{align*}
+
+\subsection{Variational Autoencoders (VAE)}
+
+With normal autoencoders, we can't sample from the latent space $z$, since we didn't make any assumptions about its distribution.
+
+\subsubsection{Learning objective}
+
+We want to learn the parameters $\bm{\theta}$ of the decoder $\colDecoder{f_{\bm{\theta}} : \mathcal{Z}^M \to \mathcal{X}}$\\
+We want to maximize the log-likelihood of the observations $\{\bm{x}_1, \ldots, \bm{x}_N\}$:
+$$\hat{\bm{\theta}} = \argmax_{\bm{\theta}} \ell(\bm{\theta}) \qquad \qquad \text{with LL} = \ell(\bm{\theta}) = \sum_{n=1}^N \log p(\bm{x}_n)$$
+To compute this, we marginalize over the latent variables $z$, or calculate the posterior:
+$$p(\bm{x}_n) = \int p_{\bm{\theta}}(\bm{x}_n | \bm{z}) p(\bm{z}) d\bm{z} \qquad \qquad p(\bm{z} | \bm{x}_n) = \frac{p_{\bm{\theta}}(\bm{x}_n | \bm{z}) p(\bm{z})}{p(\bm{x}_n)}$$
+However, this is intractable for non-linear decoders such as neural networks, making the direct optimization of the log-likelihood $l(\bm{\theta})$ impossible.
+
+\newpage
+
+\subsubsection{Amortized Variational Inference}
+Variational inference (VI) \textit{approximatively} maximizes the log-likelihood $\ell(\bm{\theta})$, since we cannot directly maximize the marginal likelihood $p_{\bm{\theta}}(\bm{x})$.
+We now derive the Evidence Lower Bound (ELBO) by applying Jensen's Inequality to the log-likelihood.
+Recall that Jensen's Inequality says that $\log \E[f(z)] \geq \E[\log f(z)]$ for the concave function $\log$.
+\begin{align*}
+    \ell(\bm{\theta}) = \log p_{\bm{\theta}}(\bm{x}) & = \log \int p_{\bm{\theta}}(\bm{x} | \bm{z}) p(\bm{z}) d\bm{z}                                                                                                                                                                          \\
+                                                     & = \log \int \left[\frac{p_{\bm{\theta}}(\bm{x} | \bm{z}) p(\bm{z})}{q_{\bm{\phi}}(\bm{z} | \bm{x})}\right] q_{\bm{\phi}}(\bm{z} | \bm{x}) d\bm{z}                                                                                       \\
+                                                     & = \log \E_{\bm{z} \sim q_{\bm{\phi}}(\bm{z} | \bm{x})} \left[ \frac{p_{\bm{\theta}}(\bm{x} | \bm{z}) p(\bm{z})}{q_{\bm{\phi}}(\bm{z} | \bm{x})} \right]   \qquad \qquad \qquad \text{$\downarrow$ use Jensen's Inequality $\downarrow$} \\
+                                                     & \geq \E_{\bm{z} \sim q_{\bm{\phi}}(\bm{z} | \bm{x})} \left[ \log \frac{p_{\bm{\theta}}(\bm{x} | \bm{z}) p(\bm{z})}{q_{\bm{\phi}}(\bm{z} | \bm{x})} \right] =: \mathcal{L}(\bm{\theta}, \bm{\phi})
+\end{align*}
+Now we can decompose the ELBO into two interpretable terms:
+\begin{align*}
+    \mathcal{L}(\bm{\theta}, \bm{\phi}) & = \E_{\bm{z} \sim q_{\bm{\phi}}(\bm{z} | \bm{x})} \left[ \log \frac{p_{\bm{\theta}}(\bm{x} | \bm{z}) p(\bm{z})}{q_{\bm{\phi}}(\bm{z} | \bm{x})} \right]                                                                                   \\
+                                        & = \E_{\bm{z} \sim q_{\bm{\phi}}(\bm{z} | \bm{x})} \big[\log p_{\bm{\theta}}(\bm{x} | \bm{z}) + \log p(\bm{z}) - \log q_{\bm{\phi}}(\bm{z} | \bm{x}) \big]                                                                                 \\
+                                        & = \E_{\bm{z} \sim q_{\bm{\phi}}(\bm{z} | \bm{x})} [\log p_{\bm{\theta}}(\bm{x} | \bm{z})] - \E_{\bm{z} \sim q_{\bm{\phi}}(\bm{z} | \bm{x})} \big[\log q_{\bm{\phi}}(\bm{z} | \bm{x}) - \log p(\bm{z}) \big]                               \\
+                                        & = \E_{\bm{z} \sim q_{\bm{\phi}}(\bm{z} | \bm{x})} [\log p_{\bm{\theta}}(\bm{x} | \bm{z})] - \E_{\bm{z} \sim q_{\bm{\phi}}(\bm{z} | \bm{x})} \left[\log\left(\frac{q_{\bm{\phi}}(\bm{z} | \bm{x})}{p(\bm{z})} \right) \right]              \\
+                                        & = \underbrace{\E_{\bm{z} \sim q_{\bm{\phi}}(\bm{z} | \bm{x})} [\log p_{\bm{\theta}}(\bm{x} | \bm{z})]}_\text{reconstruction term} - \underbrace{\mathrm{KL}[q_{\bm{\phi}}(\bm{z} | \bm{x}) \, ||\, p(\bm{z})]}_\text{regularization term}
+\end{align*}
+
+The reconstruction term encourages the decoder to assign high probability to the data $\bm{x}$ given the latent code $\bm{z}$. The regularization term is the Kullback-Leibler (KL) divergence, which forces the learned posterior $q_{\bm{\phi}}(\bm{z} | \bm{x})$ to remain close to the prior $p(\bm{z})$.
+
+\textbf{Why maximize the ELBO?}
+We maximize the ELBO $\mathcal{L}(\bm{\theta}, \bm{\phi})$ as a proxy for the intractable log-likelihood. This works because of the following exact identity:
+\begin{equation*}
+    \log p_{\bm{\theta}}(\bm{x}) = \mathcal{L}(\bm{\theta}, \bm{\phi}) + \mathrm{KL}[q_{\bm{\phi}}(\bm{z} | \bm{x}) \, || \, p_{\bm{\theta}}(\bm{z} | \bm{x})]
+\end{equation*}
+Since the KL divergence is always non-negative ($\mathrm{KL} \geq 0$), the ELBO is strictly a lower bound on the log-likelihood.
+Furthermore, since $\log p_{\bm{\theta}}(\bm{x})$ is fixed for a given data point, maximizing the ELBO $\mathcal{L}(\bm{\theta}, \bm{\phi})$ is mathematically equivalent to minimizing the divergence between our approximate posterior $q_{\bm{\phi}}$ and the true posterior $p_{\bm{\theta}}$. We thus get that $q_{\bm{\phi}}(\bm{z} | \bm{x}) \approx p_{\bm{\theta}}(\bm{z} | \bm{x})$.
+
+\subsubsection{Optimization and the reparameterization trick}
+
+To optimize the parameters $\bm{\theta}$ and $\bm{\phi}$ simultaneously via stochastic gradient descent,
+we need to backpropagate through the sampling operation $\bm{z} \sim q_{\bm{\phi}}(\bm{z}|\bm{x})$.
+However, sampling from a distribution is \textit{non-differentiable}. We solve this using the \textit{reparameterization trick}.
+
+We express the random variable $\bm{z}$ as a deterministic transformation of the input $\bm{x}$ and an auxiliary noise variable $\bm{\epsilon}$, which is sampled from a fixed distribution $p(\epsilon)$ (e.g. $\mathcal{N}(0, I)$):
+\begin{equation*}
+    \bm{z} = \mu_{\bm{\phi}}(\bm{x}) + \sigma_{\bm{\phi}}(\bm{x}) \odot \bm{\epsilon}, \qquad \qquad \text{where } \bm{\epsilon} \sim \mathcal{N}(0, I)
+\end{equation*}
+Where $\bm{\phi}$ are the parameters of the encoder \colEncoder{$g_{\bm{\phi}}$}.
+In other words, the encoder neural net \colEncoder{$g_{\bm{\phi}} : \mathcal{X} \to K$} outputs the mean and standard deviation of the variational distribution \colVarFam{$\{\Psi(\cdot | \bm{\kappa})\}_{\bm{\kappa} \in \mathcal{K}}$}.
+
+This formulation allows us to compute low-variance gradients:
+\begin{equation*}
+    \nabla_{\bm{\theta},\bm{\phi}} \E_{\bm{z} \sim q_{\bm{\phi}}(\bm{z}|\bm{x})} \left[ f_{\bm{\theta}, \bm{\phi}}(\bm{z}) \right]
+\end{equation*}
+
+\subsection{Generative Adversarial Networks (GANs)}
+
+Noise $\bm{z} \in \mathcal{Z}^M$ is sampled from the noise distribution: $$\bm{z} \sim p(\bm{z}) = \mathcal{N}(0, I)$$
+The generator $G_{\bm{\phi}}$ generates fake data (an image) from the noise $\bm{z}$: $$G_{\bm{\phi}}(\bm{z}) : \mathcal{Z}^M \to \mathcal{X}$$
+The discriminator $D_{\bm{\theta}}$ outputs probability that $\bm{x}$ is real data: $$D_{\bm{\theta}}(\bm{x}) : \mathcal{X} \to [0, 1]$$
+
+Note that we got rid of the output density $\colOutFam{\Phi}$ from the VAE. Here,
+$\boxed{H = \mathcal{X}} =$ input space. This means that the generator $G_{\bm{\phi}}$
+\textit{directly} generates input space data $\in \mathcal{X}$ from the noise $\bm{z} \sim p(\bm{z})$
+without the need for the output density $\colOutFam{\Phi}$.
+
+\subsubsection{Objective Function}
+$$ \min_{G} \max_{D} V(D, G) = \E_{\bm{x} \sim p_{\text{data}}(\bm{x})}[\log D(\bm{x})] + \E_{\bm{z} \sim p(\bm{z})}[\log(1 - D(G(\bm{z})))] $$
+
+\subsubsection{Training}
+\begin{itemize}
+    \item \textbf{Discriminator:} Maximize probability of assigning correct labels to both real and fake images.
+    \item \textbf{Generator:} Maximize $\log D(G(\bm{z}))$, i.e. the probability that the discriminator labels the (fake) generated image as real.
+\end{itemize}
+
+\subsubsection{Measuring performance}
+
+Since GANs do not provide a tractable likelihood $p(\bm{x})$, we cannot compare models using test-set log-likelihoods
+as we do with VAEs. Instead, we rely on heuristic metrics that utilize pre-trained classifiers to
+compute Inception Score or Fréchet Inception Distance.
+
+The Inception Score measures the quality and diversity of generated images. It is defined as:
+\begin{equation*}
+    \mathrm{IS} = \exp \left( \mathbb{E}_{\bm{x} \sim p_{gen}(\bm{x})} \left[ \mathrm{KL}(p(y|\bm{x}) \ || \ p_\text{test}(y)) \right] \right)
+\end{equation*}
+and it measures the average distance between generate images class distributions $p(y|\bm{x})$ and the test set class distributions $p_\text{test}(y)$.
+
+The Fréchet Inception Distance (FID) uses the Wasserstein-2 distance between two Gaussians fitted to the last pooling-layer of Inception-v3.
+
+\subsection{Semi-supervised Learning}
+
+Semi-supervised learning
+
+\begin{itemize}
+    \item $\neq$ transfer learning!
+    \item Little labeled data $\bm{y}$
+    \item Lots of unlabeled data $\bm{x}$
+    \item Auto-encode (unsupervised) to $\bm{z}$
+    \item Train classifier on $\bm{z}$ (supervised)
+\end{itemize}
+
+\end{document}
